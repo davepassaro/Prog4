@@ -1,3 +1,4 @@
+//gcc -std=gnu99 -g -o  otp_enc  otp_enc.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
