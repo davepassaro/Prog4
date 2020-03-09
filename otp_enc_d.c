@@ -1,4 +1,5 @@
-//gcc -std=gnu99 -g -o  otp_enc_d otp_enc_d.c
+//gcc -std=gnu99 -g -o  otp_enc_d otp_enc_d.c      
+//otp_enc_d 54321 &
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,17 +9,31 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
+//bool emulation
+typedef enum
+{
+  FALSE,
+  TRUE
+} bool;
+
 void error(const char *msg) { perror(msg); exit(1); } // Error function used for reporting issues
+
+int redoRecv(int establishedConnectionFD,char *buffer,int bufSize,int bufIdx);
 
 int main(int argc, char *argv[])
 {
 	int listenSocketFD, establishedConnectionFD, portNumber, charsRead;
 	socklen_t sizeOfClientInfo;
-	char buffer[256];
+    bool startOver;
+	char buffer[1001];
 	struct sockaddr_in serverAddress, clientAddress;
-
+    char finalBuf[30000];
+    int bufSize=0;
+    int rereadNum=0;
+    int remainChars=0;
+    int redoBufSize=0;
+    int bufIdx=0;
 	if (argc < 2) { fprintf(stderr,"USAGE: %s port\n", argv[0]); exit(1); } // Check usage & args
-
 	// Set up the address struct for this process (the server)
 	memset((char *)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
 	portNumber = atoi(argv[1]); // Get the port number, convert to an integer from a string
@@ -35,23 +50,74 @@ int main(int argc, char *argv[])
 		error("ERROR on binding");
 	listen(listenSocketFD, 5); // Flip the socket on - it can now receive up to 5 connections
 
-    while(1){
+    while(1){//kill -TERM {job number} to kill
+        memset(finalBuf,'\0',30000);
         // Accept a connection, blocking if one is not available until one connects
+        startOver = FALSE ;//init to false
         sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
         establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
         if (establishedConnectionFD < 0){error("ERROR on accept");}
         printf("SERVER: Connected Client at port %d\n",ntohs(clientAddress.sin_port));
+        
+        // Get the message size from the client (in bufSize)
+        charsRead = recv(establishedConnectionFD, bufSize, sizeof(uint32_t),0); // Read the client's message from the socket
+        if (charsRead < 0) error("ERROR reading from socket1");
+        printf("SERVER: bufSize = %d",bufSize);fflush(stdout);
         // Get the message from the client and display it
-        memset(buffer, '\0', 256);
-        charsRead = recv(establishedConnectionFD, buffer, 255, 0); // Read the client's message from the socket
-        if (charsRead < 0) error("ERROR reading from socket");
-        printf("SERVER: I received this from the client: \"%s\"\n", buffer);
+        memset(buffer, '\0', 1001);
+        do{//check for incomplete message and re revc 
+            // Read the client's message from the socket
 
+            if(bufSize <= 1000 && startOver == FALSE){ //if buff less than 1000 just one loop (and first loop)  
+                remainChars=0;
+                charsRead = recv(establishedConnectionFD, finalBuf, bufSize, 0);
+                if (charsRead < 0) error("ERROR reading from socket2");
+                remainChars = bufSize-charsRead;
+                while(remainChars!=0){
+                    bufIdx= bufSize-remainChars;//get params for redo send call, bufIdx to get to where message was left off in buffer
+                    charsRead = redoRecv(establishedConnectionFD, buffer, remainChars, bufIdx);//new bufSize is remainChars, charsRead is updated
+                    if (charsRead < 0) error("ERROR reading from socket");
+                    remainChars = remainChars - charsRead;//update remaining
+                }
+                startOver = FALSE;
+            }
+            else if(bufSize <= 1000){ //if not first loop (put in finalBuf) 
+                remainChars=0;
+                charsRead = recv(establishedConnectionFD, buffer, bufSize, 0);
+                if (charsRead < 0) error("ERROR reading from socket3");
+                remainChars = bufSize-charsRead;
+                while(remainChars!=0){
+                    bufIdx= bufSize-remainChars;//get params for redo send call, bufIdx to get to where message was left off in buffer
+                    charsRead = redoRecv(establishedConnectionFD, buffer, remainChars, bufIdx);//new bufSize is remainChars
+                    remainChars = remainChars - charsRead;
+                }
+                strcat(finalBuf, buffer);
+                startOver = FALSE;
+            }
+            else{//just read 1000 chars and sub bufsize and reloop
+                bufSize = (bufSize - 1000);
+                charsRead = recv(establishedConnectionFD, buffer, 1000, 0);
+                if (charsRead < 0) error("ERROR reading from socket4");
+                remainChars = bufSize-charsRead;
+                while(remainChars!=0){
+                    bufIdx= bufSize-remainChars;//get params for redo send call, bufIdx to get to where message was left off in buffer
+                    charsRead = redoRecv(establishedConnectionFD, buffer, remainChars, bufIdx);//new bufSize is remainChars
+                    remainChars = remainChars - charsRead;
+                }
+                startOver=TRUE;
+                strcat(finalBuf, buffer);
+            }
+            printf("SERVER: I received this from the client: \"%s\"\n", finalBuf);
+        }while(startOver == TRUE);
         // Send a Success message back to the client
         charsRead = send(establishedConnectionFD, "I am the server, and I got your message", 39, 0); // Send success back
-        if (charsRead < 0) error("ERROR writing to socket");
+        if (charsRead < 0) error("ERROR writing to socket5");
         close(establishedConnectionFD); // Close the existing socket which is connected to the client
     }
     close(listenSocketFD); // Close the listening socket
 	return 0; 
+}
+int redoRecv(int establishedConnectionFD,char *buffer,int bufSize,int bufIdx){
+    int charsRead = recv(establishedConnectionFD, buffer+bufIdx, bufSize,0);//new bufSize is remainChars
+    return charsRead;
 }
