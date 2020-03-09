@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
     //send message size to server
 	bufSize = strlen(bigMessage);
     printf("CLIENT: bufSize = %d",bufSize);fflush(stdout);
-    charsWritten = send(socketFD, bufSize,sizeof(uint32_t), 0); // Write to the server
+    charsWritten = send(socketFD, &bufSize,sizeof(uint32_t), 0); // Write to the server
     if (charsWritten < 0) error("CLIENT: ERROR writing to socket1");
 
     do{//check for incomplete message and re revc 

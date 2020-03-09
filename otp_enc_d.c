@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
         printf("SERVER: Connected Client at port %d\n",ntohs(clientAddress.sin_port));
         
         // Get the message size from the client (in bufSize)
-        charsRead = recv(establishedConnectionFD, bufSize, sizeof(uint32_t),0); // Read the client's message from the socket
+        charsRead = recv(establishedConnectionFD, &bufSize, sizeof(uint32_t),0); // Read the client's message from the socket
         if (charsRead < 0) error("ERROR reading from socket1");
         printf("SERVER: bufSize = %d",bufSize);fflush(stdout);
         // Get the message from the client and display it
