@@ -16,7 +16,9 @@ typedef enum
   TRUE
 } bool;
 
-void error(const char *msg) { perror(msg); exit(1); } // Error function used for reporting issues
+void error(const char *msg) { 
+    fprintf(stderr,"SERVERERROR: ");fflush(stdout);
+    perror(msg); exit(1); } // Error function used for reporting issues
 
 int redoRecv(int establishedConnectionFD,char *buffer,int bufSize,int bufIdx);
 
@@ -27,8 +29,9 @@ int main(int argc, char *argv[])
     bool startOver;
 	char buffer[1001];
 	struct sockaddr_in serverAddress, clientAddress;
-    char finalBuf[30000];
+    char finalBuf[70000];
     int bufSize=0;
+    int secretCode;
     int rereadNum=0;
     int remainChars=0;
     int redoBufSize=0;
@@ -49,16 +52,19 @@ int main(int argc, char *argv[])
 	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to port
 		error("ERROR on binding");
 	listen(listenSocketFD, 5); // Flip the socket on - it can now receive up to 5 connections
-
+    startOver = FALSE ;//init to false
     while(1){//kill -TERM {job number} to kill
         memset(finalBuf,'\0',30000);
         // Accept a connection, blocking if one is not available until one connects
-        startOver = FALSE ;//init to false
         sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
         establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
         if (establishedConnectionFD < 0){error("ERROR on accept");}
         printf("SERVER: Connected Client at port %d\n",ntohs(clientAddress.sin_port));
-        
+        charsRead = recv(establishedConnectionFD, &secretCode, sizeof(uint32_t),0); // Read the code 
+        if (charsRead < 0) error("ERROR reading from socket1");
+        if(secretCode != 9){
+            fprintf(stderr,"SERVER: Incorrect entry code for otp_enc_d\n");fflush(stderr);
+            continue;}
         // Get the message size from the client (in bufSize)
         charsRead = recv(establishedConnectionFD, &bufSize, sizeof(uint32_t),0); // Read the client's message from the socket
         if (charsRead < 0) error("ERROR reading from socket1");
@@ -98,8 +104,9 @@ int main(int argc, char *argv[])
                 bufSize = (bufSize - 1000);
                 charsRead = recv(establishedConnectionFD, buffer, 1000, 0);
                 if (charsRead < 0) error("ERROR reading from socket4");
-                remainChars = bufSize-charsRead;
+                remainChars = 1000-charsRead;
                 while(remainChars!=0){
+                    
                     bufIdx= bufSize-remainChars;//get params for redo send call, bufIdx to get to where message was left off in buffer
                     charsRead = redoRecv(establishedConnectionFD, buffer, remainChars, bufIdx);//new bufSize is remainChars
                     remainChars = remainChars - charsRead;
@@ -107,7 +114,7 @@ int main(int argc, char *argv[])
                 startOver=TRUE;
                 strcat(finalBuf, buffer);
             }
-            printf("SERVER: I received this from the client: \"%s\"\n", finalBuf);
+            //printf("SERVER: I received this from the client: \"%s\"\n", finalBuf);
         }while(startOver == TRUE);
         // Send a Success message back to the client
         charsRead = send(establishedConnectionFD, "I am the server, and I got your message", 39, 0); // Send success back
