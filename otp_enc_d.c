@@ -54,7 +54,8 @@ int main(int argc, char *argv[])
 	listen(listenSocketFD, 5); // Flip the socket on - it can now receive up to 5 connections
     startOver = FALSE ;//init to false
     while(1){//kill -TERM {job number} to kill
-        memset(finalBuf,'\0',30000);
+        memset(finalBuf,'\0',70000);
+
         // Accept a connection, blocking if one is not available until one connects
         sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
         establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
@@ -71,10 +72,15 @@ int main(int argc, char *argv[])
         printf("SERVER: bufSize = %d",bufSize);fflush(stdout);
         // Get the message from the client and display it
         memset(buffer, '\0', 1001);
+        int j=0;
         do{//check for incomplete message and re revc 
             // Read the client's message from the socket
+            fprintf(stdout,"j= %d\n",j);fflush(stdout);
+            j++;
+            memset(buffer,'\0',1000);
 
             if(bufSize <= 1000 && startOver == FALSE){ //if buff less than 1000 just one loop (and first loop)  
+                fprintf(stdout,"1\n");fflush(stdout);
                 remainChars=0;
                 charsRead = recv(establishedConnectionFD, finalBuf, bufSize, 0);
                 if (charsRead < 0) error("ERROR reading from socket2");
@@ -88,6 +94,8 @@ int main(int argc, char *argv[])
                 startOver = FALSE;
             }
             else if(bufSize <= 1000){ //if not first loop (put in finalBuf) 
+                fprintf(stdout,"2\n");fflush(stdout);
+                
                 remainChars=0;
                 charsRead = recv(establishedConnectionFD, buffer, bufSize, 0);
                 if (charsRead < 0) error("ERROR reading from socket3");
@@ -101,6 +109,8 @@ int main(int argc, char *argv[])
                 startOver = FALSE;
             }
             else{//just read 1000 chars and sub bufsize and reloop
+                fprintf(stdout,"3\n");fflush(stdout);
+                
                 bufSize = (bufSize - 1000);
                 charsRead = recv(establishedConnectionFD, buffer, 1000, 0);
                 if (charsRead < 0) error("ERROR reading from socket4");
@@ -116,6 +126,8 @@ int main(int argc, char *argv[])
             }
             //printf("SERVER: I received this from the client: \"%s\"\n", finalBuf);
         }while(startOver == TRUE);
+        printf("%s\n", finalBuf);
+
         // Send a Success message back to the client
         charsRead = send(establishedConnectionFD, "I am the server, and I got your message", 39, 0); // Send success back
         if (charsRead < 0) error("ERROR writing to socket5");

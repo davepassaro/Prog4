@@ -36,6 +36,7 @@ int main(int argc, char *argv[])
 	struct hostent* serverHostInfo;
 	char buffer[1001];
     char bigMessage[70000];
+    char key[70000];
     char toCheck[] = {'a','b','c','d','e','f','g','h','i','j', 
     'k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','!','@','#','$','%','^','&','*' ,
     '(',')',',','\'','"','-','_','[',']','{','}','`','~','\\','|','?','.','<','>'}; 
@@ -47,13 +48,13 @@ int main(int argc, char *argv[])
     int haveRead=0;
     FILE *fptr;
     char * fileName;
-	if (argc < 3) { fprintf(stderr,"USAGE: %s hostname port\n", argv[0]); exit(0); } // Check usage & args
+	if (argc < 5) { fprintf(stderr,"USAGE: %s hostname port\n", argv[0]); exit(0); } // Check usage & args
 	// Set up the server address struct
 	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
-	portNumber = atoi(argv[3]); // Get the port number, convert to an integer from a string
+	portNumber = atoi(argv[4]); // Get the port number, convert to an integer from a string
 	serverAddress.sin_family = AF_INET; // Create a network-capable socket
 	serverAddress.sin_port = htons(portNumber); // Store the port number
-	serverHostInfo = gethostbyname(argv[2]); // Convert the machine name into a special form of address
+	serverHostInfo = gethostbyname(argv[3]); // Convert the machine name into a special form of address
 	if (serverHostInfo == NULL) { fprintf(stderr, "CLIENT: ERROR, no such host\n"); exit(0); }
 	memcpy((char*)&serverAddress.sin_addr.s_addr, (char*)serverHostInfo->h_addr, serverHostInfo->h_length); // Copy in the address
 
@@ -66,22 +67,39 @@ int main(int argc, char *argv[])
 		error("CLIENT: ERROR connecting");
 
 	// Get input message from user
-	//printf("CLIENT: Enter text to send to the server, and then hit enter: ");
     memset(bigMessage, '\0', sizeof(bigMessage)); // Clear out the buffer array
    // strcpy(fileName,
     fptr = fopen(argv[1],"r");
     if(fptr == NULL)
     {
         fprintf(stderr,"Error opening input file");   
-        exit(2);//                ?             
+        exit(1);//                ?             
     }
 
 	fgets(bigMessage,70000, fptr);
     if( bigMessage[0]=='\0'){fprintf(stderr,"Nothing read from file");fflush(stderr);}
     // Get input from the user, trunc to buffer - 1 chars, leaving \0
 	bigMessage[strcspn(bigMessage, "\n")] = '\0'; // Remove the trailing \n that fgets adds
-    //send message size to server
     //fprintf(stdout,"\n\nfile = %s\n\n", bigMessage);fflush(stdout);
+
+    // Get key
+	//printf("CLIENT: Enter text to send to the server, and then hit enter: ");
+    memset(key, '\0', sizeof(key)); // Clear out the buffer array
+   // strcpy(fileName,
+    fclose(fptr);
+    fptr = fopen(argv[2],"r");
+    if(fptr == NULL)
+    {
+        fprintf(stderr,"Error opening key file");   
+        exit(1);//                ?             
+    }
+
+	fgets(key,70000, fptr);
+    if( key[0]=='\0'){fprintf(stderr,"Nothing read from file");fflush(stderr);}
+    // Get input from the user, trunc to buffer - 1 chars, leaving \0
+	key[strcspn(key, "\n")] = '\0'; // Remove the trailing \n that fgets adds
+    //send message size to server
+    fprintf(stdout,"\n\key = %s\n\n", key);fflush(stdout);
 	bufSize = strlen(bigMessage);
     for (int i=0;i<bufSize;i++){
         for(j=0;j<sizeof(toCheck);j++){//for each char in message check if correct 
@@ -99,7 +117,7 @@ int main(int argc, char *argv[])
     if (charsWritten < 0) error("CLIENT: ERROR writing to socket1");
     j=0;
     startOver = FALSE;
-    haveRead= 0;//reinit to 0 as is index
+    haveRead= 0;//init to 0 as is index
 
     do{//check for incomplete message and re revc 
         // Read the client's message from the socket
