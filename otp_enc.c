@@ -160,7 +160,6 @@ void sendInput(int socketFD, char * message){
     charsWritten = send(socketFD, &bufSize,sizeof(uint32_t), 0); // Write to the server
     if (charsWritten < 0) error("CLIENT: ERROR writing to socket1");
     j=0;
-
     do{//check for incomplete message and re revc 
         // Read the client's message from the socket
         //fprintf(stdout,"\nj=%d",j);fflush(stdout);

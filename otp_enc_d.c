@@ -104,7 +104,7 @@ void recvInput(int establishedConnectionFD, char * message){
         // Read the client's message from the socket
         //fprintf(stdout,"j= %d\n",j);fflush(stdout);
         //j++;
-        memset(buffer,'\0',1000);
+        memset(buffer,'\0',1001);
 
         if(bufSize <= 1000 && startOver == FALSE){ //if buff less than 1000 just one loop (and first loop)  
             //fprintf(stdout,"s1\n");fflush(stdout);
@@ -137,6 +137,8 @@ void recvInput(int establishedConnectionFD, char * message){
             }
             strcat(message, buffer);
             startOver = FALSE;
+            //fprintf(stdout,"%s\n", buffer);fflush(stdout);
+
             //return(message);
         }
         else{//just read 1000 chars and sub bufsize and reloop
@@ -154,6 +156,8 @@ void recvInput(int establishedConnectionFD, char * message){
             }
             startOver=TRUE;
             strcat(message, buffer);
+    //fprintf(stdout,"%s\n", buffer);fflush(stdout);
+
         }
 
 
