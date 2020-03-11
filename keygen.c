@@ -17,15 +17,20 @@ int main(int argc, char *argv[]){
 }
 void generator(int len){
     char key[len+1];
+    //fprintf(stdout,"%d\n",strlen(key));fflush(stdout);
+    memset(key, '\0',sizeof(key));
+    //fprintf(stdout,"%d\n",strlen(key));fflush(stdout);
+
     char options[] = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',' '};
     int x=0;
     time_t t;    
     srand((unsigned) time(&t));//seed rand()
-    while (x<len){
-        key[x]= options[(rand() % 28)]; 
+    for (x=0;x<len;x++){
+        key[x]= options[(rand() % 27)]; 
         //give key index a char value from random index options array  
-        x++;
     }
     key[len+1]='\0';
+    //fprintf(stdout,"%d\n",strlen(key));fflush(stdout);
+
     fprintf(stdout,"%s\n",key);fflush(stdout);
 }

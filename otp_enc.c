@@ -12,6 +12,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h> 
+#include <sys/ioctl.h>
 
 //bool emulation
 typedef enum
@@ -98,31 +99,38 @@ int main(int argc, char *argv[])
     // Get input from the user, trunc to buffer - 1 chars, leaving \0
 	key[strcspn(key, "\n")] = '\0'; // Remove the trailing \n that fgets adds
     //send message size to server
-    fprintf(stdout,"\nkey = %s\n\n", key);fflush(stdout);
+   // fprintf(stdout,"\nkey = %s\n\n", key);fflush(stdout);
 	bufSize = strlen(bigMessage);
     checkInput(bufSize, bigMessage, toCheck);
     int keySize = strlen(key);
     checkInput(keySize, key, toCheck);
-    printf("CLIENT: bufSize = %d",bufSize);fflush(stdout);
+    if (keySize<bufSize){fprintf(stderr,"Key too small for message");fflush(stderr);}
+    printf("CLIENT: keySize = %d, messSize = %d",keySize, bufSize);fflush(stdout);
     secretCode = 9;
     charsWritten = send(socketFD, &secretCode,sizeof(uint32_t), 0); // Write to the server
     if (charsWritten < 0) error("CLIENT: ERROR writing to socket2");
     
     
-    //sendInput(socketFD, key);
-    
+    sendInput(socketFD, key);
+    //fprintf(stdout,"\ncomplete send1\n");fflush(stdout);
+
     sendInput(socketFD, bigMessage);
     // Send message to server
 
-//	if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
-    fprintf(stdout,"\ncomplete send\n");fflush(stdout);
+    //	if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
+    //fprintf(stdout,"\ncomplete send2\n");fflush(stdout);
 
 	// Get return message from server
-	memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer again for reuse
-	charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0); // Read data from the socket, leaving \0 at end
-	if (charsRead < 0) error("CLIENT: ERROR reading from socket");
-	printf("CLIENT: I received this from the server: \"%s\"\n", buffer);
+    int checkSend = -5;  // Bytes remaining in send buffer
+    do
+    {
+    ioctl(socketFD, TIOCOUTQ, &checkSend);  // Check the send buffer for this socket
+    //printf("checkSend: %d\n", checkSend);  // Out of curiosity, check how many remaining bytes there are:
+    }
+    while (checkSend > 0);  // Loop forever until send buffer for this socket is empty
 
+    if (checkSend < 0)  // Check if we actually stopped the loop because of an error
+    error("ioctl error");
 	close(socketFD); // Close the socket
 	return 0;
 }
@@ -190,7 +198,7 @@ void sendInput(int socketFD, char * message){
                 buffer[i] = message[i+haveRead];
                 //fprintf(stdout,"%c",buffer[i]);fflush(stdout);
             }
-           // fprintf(stdout,"\nafter copy buffer\n%s\n",buffer);fflush(stdout);
+            //fprintf(stdout,"%s",buffer);fflush(stdout);
             charsWritten = send(socketFD, buffer,strlen(buffer), 0); // Write to the server  1000 chars      
             if (charsWritten < 0) error("CLIENT: ERROR writing to socket4");
             remainChars = 1000-charsWritten;
@@ -206,6 +214,11 @@ void sendInput(int socketFD, char * message){
             bufSize = (bufSize - 1000);//update chars to send after this loop cycle
         }
     }while(startOver == TRUE);
+    memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer again for reuse
+	int charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0); // Read data from the socket,make sure send over
+	if (charsRead < 0) error("CLIENT: ERROR reading from socket");
+	fprintf(stdout,"CLIENT: I received this from the server: %s\n", buffer);fflush(stdout);
+
 }
 
 
