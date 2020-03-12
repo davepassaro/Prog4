@@ -22,6 +22,7 @@ void error(const char *msg) {
 
 int redoRecv(int establishedConnectionFD,char *buffer,int bufSize,int bufIdx);
 void recvInput(int establishedConnectionFD, char *message);
+void cipher(char * key, char * message, char * cip);
 
 int main(int argc, char *argv[])
 {
@@ -36,6 +37,7 @@ int main(int argc, char *argv[])
     int redoBufSize=0;
     char message[70000];        
     char key[70000];
+    char cip[70000];
     int bufIdx=0;
 	if (argc < 2) { fprintf(stderr,"USAGE: %s port\n", argv[0]); exit(1); } // Check usage & args
 	// Set up the address struct for this process (the server)
@@ -70,7 +72,7 @@ int main(int argc, char *argv[])
         recvInput(establishedConnectionFD,key);
         //fprintf(stderr,"SERVER: ecfd2= %d\n",establishedConnectionFD);fflush(stderr);
         recvInput(establishedConnectionFD,message);
-
+        cipher(key, message, cip);
         //printf("%s\n", key);
     }
     int checkSend = -5;  // Bytes remaining in send buffer
@@ -87,11 +89,12 @@ int main(int argc, char *argv[])
 	exit(0); 
 }
 int redoRecv(int establishedConnectionFD,char *buffer,int bufSize,int bufIdx){
-    int charsRead = recv(establishedConnectionFD, buffer+bufIdx, bufSize,0);//new bufSize is remainChars
+    int charsRead = recv(establishedConnectionFD, buffer+bufIdx+1, bufSize,0);//new bufSize is remainChars
     return charsRead;
 }
 void recvInput(int establishedConnectionFD, char * message){
-    int bufSize,remainChars,charsRead,bufIdx;
+    int bufSize,remainChars,charsRead,bufIdx,sent;
+
     char buffer[1001];
     bool startOver=FALSE;
     memset(message,'\0',70000);
@@ -112,10 +115,12 @@ void recvInput(int establishedConnectionFD, char * message){
             charsRead = recv(establishedConnectionFD, message, bufSize, 0);
             if (charsRead < 0) error("ERROR reading from socket2");
             remainChars = bufSize-charsRead;
-            while(remainChars!=0){
-                fprintf(stdout,"err1\n");fflush(stdout);
-                bufIdx= bufSize-remainChars;//get params for redo send call, bufIdx to get to where message was left off in buffer
-                charsRead = redoRecv(establishedConnectionFD, buffer, remainChars, bufIdx);//new bufSize is remainChars, charsRead is updated
+            sent=0;
+            while(remainChars>0){
+                sent+= charsRead;
+                fprintf(stdout,"err1s\n");fflush(stdout);
+                
+                charsRead = recv(establishedConnectionFD, &message[sent], sizeof(message)-sent, 0);//new bufSize is remainChars, charsRead is updated
                 if (charsRead < 0) error("ERROR reading from socket");
                 remainChars = remainChars - charsRead;//update remaining
             }
@@ -125,15 +130,17 @@ void recvInput(int establishedConnectionFD, char * message){
         }
         else if(bufSize <= 1000){ //if not first loop (put in finalBuf) 
             //fprintf(stdout,"s2\n");fflush(stdout);
-            
             remainChars=0;
             charsRead = recv(establishedConnectionFD, buffer, bufSize, 0);
             if (charsRead < 0) error("ERROR reading from socket3");
             remainChars = bufSize-charsRead;
+            sent=0;
             while(remainChars!=0){
-                bufIdx= bufSize-remainChars;//get params for redo send call, bufIdx to get to where message was left off in buffer
-                charsRead = redoRecv(establishedConnectionFD, buffer, remainChars, bufIdx);//new bufSize is remainChars
-                remainChars = remainChars - charsRead;
+                sent+= charsRead;
+                fprintf(stdout,"err2s\n");fflush(stdout);
+                charsRead = recv(establishedConnectionFD, &buffer[sent], sizeof(buffer)-sent, 0);//new bufSize is remainChars, charsRead is updated
+                if (charsRead < 0) error("ERROR reading from socket");
+                remainChars = remainChars - charsRead;//update remaining
             }
             strcat(message, buffer);
             startOver = FALSE;
@@ -148,11 +155,13 @@ void recvInput(int establishedConnectionFD, char * message){
             charsRead = recv(establishedConnectionFD, buffer, 1000, 0);
             if (charsRead < 0) error("ERROR reading from socket4");
             remainChars = 1000-charsRead;
+            sent=0;
             while(remainChars!=0){
-                
-                bufIdx= bufSize-remainChars;//get params for redo send call, bufIdx to get to where message was left off in buffer
-                charsRead = redoRecv(establishedConnectionFD, buffer, remainChars, bufIdx);//new bufSize is remainChars
-                remainChars = remainChars - charsRead;
+                sent+= charsRead;
+                fprintf(stdout,"err2s\n");fflush(stdout);
+                charsRead = recv(establishedConnectionFD, &buffer[sent], sizeof(buffer)-sent, 0);//new bufSize is remainChars, charsRead is updated
+                if (charsRead < 0) error("ERROR reading from socket");
+                remainChars = remainChars - charsRead;//update remaining
             }
             startOver=TRUE;
             strcat(message, buffer);
@@ -175,19 +184,26 @@ void recvInput(int establishedConnectionFD, char * message){
 
 }
 
-/*
+
 void cipher(char * key, char * message, char * cip){
     int x=0;
-    int offset=newOffset=0;
+    int offset,newOffset,cipherOffset, keyOffset;
     for(x=0;x<strlen(message);x++){
         if(message[x]==' '){
-
+            message[x] = '['  ;// ------------set to int 91 after 'Z' to keep subtraction of 'A' correct
+            offset = message[x] - 'A' ;
+            keyOffset = key[x] - 'A' ;
+            newOffset = offset + keyOffset ;
+            cipherOffset = newOffset % 27 ;
+            cip[x] = cipherOffset + 'A';
         }
         else{
-            message[x] - 'A' = offset;
-            key - 'A' = keyOffset
-            offset + keyOffset = newOffset
-            newOffset % 27 = cipherOffset
-            cipherChar = cipherOffset + 'A'
-
-}*/
+            offset = message[x] - 'A' ;
+            keyOffset = key[x] - 'A' ;
+            newOffset = offset + keyOffset ;
+            cipherOffset = newOffset % 27;
+            cip[x] = cipherOffset + 'A';
+        }
+    fprintf(stdout,"\n%s\n",cip);
+    }
+}

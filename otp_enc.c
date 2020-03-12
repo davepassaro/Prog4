@@ -216,6 +216,16 @@ void sendInput(int socketFD, char * message){
     memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer again for reuse
 	int charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0); // Read data from the socket,make sure send over
 	if (charsRead < 0) error("CLIENT: ERROR reading from socket");
+
+    int sent=0;
+    remainChars = sizeof(buffer) - charsRead;//update remaining
+    while(remainChars!=0){
+        sent+= charsRead;
+        fprintf(stdout,"err2c\n");fflush(stdout);
+        charsRead = recv(socketFD, &buffer[sent], sizeof(buffer)-sent, 0);//new bufSize is remainChars, charsRead is updated
+        if (charsRead < 0) error("ERROR reading from socket");
+        remainChars = remainChars - charsRead;//update remaining
+    }
 	fprintf(stdout,"CLIENT: I received this from the server: %s\n", buffer);fflush(stdout);
 
 }
