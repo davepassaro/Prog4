@@ -27,7 +27,8 @@ void error(const char *msg) {
     perror(msg); exit(0); } // Error function used for reporting issues
 int redoSend(int socketFD,int buffer, int bufSize, int bufIdx);
 void sendInput(int socketFD, char * message);
-
+void recvInput(int establishedConnectionFD, char * message);
+void decipher(char * key, char * message, char * cip);
 
 int main(int argc, char *argv[])
 {
@@ -36,6 +37,7 @@ int main(int argc, char *argv[])
 	struct hostent* serverHostInfo;
 	char buffer[1001];
     char bigMessage[70000];
+    char decoded[70000];
     char key[70000];
     char toCheck[] = {'a','b','c','d','e','f','g','h','i','j', 
     'k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','!','@','#','$','%','^','&','*' ,
@@ -108,7 +110,7 @@ int main(int argc, char *argv[])
         fprintf(stderr,"CLIENT: Key too small for message");fflush(stderr);
         exit(1);
     }
-    printf("CLIENT: keySize = %d, messSize = %d",keySize, bufSize);fflush(stdout);
+    //printf("CLIENT: keySize = %d, messSize = %d",keySize, bufSize);fflush(stdout);
     secretCode = 9;
     charsWritten = send(socketFD, &secretCode,sizeof(uint32_t), 0); // Write to the server
     if (charsWritten < 0) error("CLIENT: ERROR writing to socket2");
@@ -118,6 +120,11 @@ int main(int argc, char *argv[])
     //fprintf(stdout,"\ncomplete send1\n");fflush(stdout);
 
     sendInput(socketFD, bigMessage);
+    memset(decoded,'\0',sizeof(decoded));
+    recvInput(socketFD, bigMessage);
+    //fprintf(stdout,"%s\n",bigMessage);fflush(stdout);
+    memset(decoded,'\0',sizeof(decoded));
+    decipher(key, decoded, bigMessage);
     // Send message to server
 
     //	if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
@@ -216,7 +223,7 @@ void sendInput(int socketFD, char * message){
             bufSize = (bufSize - 1000);//update chars to send after this loop cycle
         }
     }while(startOver == TRUE);
-    memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer again for reuse
+    /*memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer again for reuse
 	int charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0); // Read data from the socket,make sure send over
 	if (charsRead < 0) error("CLIENT: ERROR reading from socket");
 
@@ -229,7 +236,100 @@ void sendInput(int socketFD, char * message){
         if (charsRead < 0) error("ERROR reading from socket");
         remainChars = remainChars - charsRead;//update remaining
     }
-	fprintf(stdout,"CLIENT: I received this from the server: %s\n", buffer);fflush(stdout);
+	fprintf(stdout,"CLIENT: I received this from the server: %s\n", buffer);fflush(stdout);*/
+
+}
+
+
+
+void recvInput(int establishedConnectionFD, char * message){
+    int bufSize,remainChars,charsRead,bufIdx,sent;
+    char buffer[1001];
+    bool startOver=FALSE;
+    memset(message,'\0',70000);
+    charsRead = recv(establishedConnectionFD, &bufSize, sizeof(uint32_t),0); // Read the client's message from the socket
+    if (charsRead < 0) error("ERROR reading from socket1");
+    //printf("\nSERVER: bufSize = %d\n",bufSize);fflush(stdout);
+    // Get the message from the client and display it
+    int j=0;
+    do{//check for incomplete message and re revc 
+        // Read the client's message from the socket
+        //fprintf(stdout,"j= %d\n",j);fflush(stdout);
+        //j++;
+        memset(buffer,'\0',1001);
+
+        if(bufSize <= 1000 && startOver == FALSE){ //if buff less than 1000 just one loop (and first loop)  
+            //fprintf(stdout,"s1\n");fflush(stdout);
+            remainChars=0;
+            charsRead = recv(establishedConnectionFD, message, bufSize, 0);
+            if (charsRead < 0) error("ERROR reading from socket2");
+            remainChars = bufSize-charsRead;
+            sent=0;
+            while(remainChars>0){
+                sent+= charsRead;
+                fprintf(stdout,"err1s\n");fflush(stdout);
+                
+                charsRead = recv(establishedConnectionFD, &message[sent], sizeof(message)-sent, 0);//new bufSize is remainChars, charsRead is updated
+                if (charsRead < 0) error("ERROR reading from socket");
+                remainChars = remainChars - charsRead;//update remaining
+            }
+            startOver = FALSE;
+
+            //return(message);
+        }
+        else if(bufSize <= 1000){ //if not first loop (put in finalBuf) 
+            //fprintf(stdout,"s2\n");fflush(stdout);
+            remainChars=0;
+            charsRead = recv(establishedConnectionFD, buffer, bufSize, 0);
+            if (charsRead < 0) error("ERROR reading from socket3");
+            remainChars = bufSize-charsRead;
+            sent=0;
+            while(remainChars!=0){
+                sent+= charsRead;
+                fprintf(stdout,"err2s\n");fflush(stdout);
+                charsRead = recv(establishedConnectionFD, &buffer[sent], sizeof(buffer)-sent, 0);//new bufSize is remainChars, charsRead is updated
+                if (charsRead < 0) error("ERROR reading from socket");
+                remainChars = remainChars - charsRead;//update remaining
+            }
+            strcat(message, buffer);
+            startOver = FALSE;
+            //fprintf(stdout,"%s\n", buffer);fflush(stdout);
+
+            //return(message);
+        }
+        else{//just read 1000 chars and sub bufsize and reloop
+            //fprintf(stdout,"s3\n");fflush(stdout);
+            
+            bufSize = (bufSize - 1000);
+            charsRead = recv(establishedConnectionFD, buffer, 1000, 0);
+            if (charsRead < 0) error("ERROR reading from socket4");
+            remainChars = 1000-charsRead;
+            sent=0;
+            while(remainChars!=0){
+                sent+= charsRead;
+                fprintf(stdout,"err2s\n");fflush(stdout);
+                charsRead = recv(establishedConnectionFD, &buffer[sent], sizeof(buffer)-sent, 0);//new bufSize is remainChars, charsRead is updated
+                if (charsRead < 0) error("ERROR reading from socket");
+                remainChars = remainChars - charsRead;//update remaining
+            }
+            startOver=TRUE;
+            strcat(message, buffer);
+    //fprintf(stdout,"%s\n", buffer);fflush(stdout);
+
+        }
+
+
+    }while(startOver == TRUE);
+    //printf("SERVER: I received this from the client: %s\n", message);
+    // Send a Success message back to the client
+    /*charsRead = send(establishedConnectionFD, "I am the server, and I got your message\n", 39, 0); // Send success back
+    if (charsRead < 0) error("ERROR writing to socket5");*/
+    //close(establishedConnectionFD); // Close the existing socket which is connected to the client
+
+   // fprintf(stdout,"\n\n\n%s\n\n\n", message);fflush(stdout);
+   // fprintf(stdout,"S finished\n", message);fflush(stdout);
+    //ciper
+
 
 }
 
@@ -237,8 +337,25 @@ void sendInput(int socketFD, char * message){
 
 
 
+void decipher(char * key, char * message, char * cip){
+    int x=0;
+    int offset,newOffset,cipherOffset, keyOffset;
+    memset(message, '\0',sizeof(message));
+    for(x=0;x<strlen(cip);x++){
+        offset = cip[x] - 'A' ;
+        keyOffset = key[x] - 'A' ;
+        newOffset = offset - keyOffset ;
+        if(newOffset<0){newOffset += 27;}
+        cipherOffset = newOffset % 27 ;
+        //fprintf(stdout,"%d= %d + %d ",cipherOffset, offset, keyOffset);
 
-
+        message[x] = cipherOffset + 'A';
+        if(message[x]=='['){
+            message[x]=' ';
+        }
+    }
+    fprintf(stdout,"decoded message:\n%s\n",message);
+}
 
 
 
