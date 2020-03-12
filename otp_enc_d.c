@@ -168,8 +168,26 @@ void recvInput(int establishedConnectionFD, char * message){
     if (charsRead < 0) error("ERROR writing to socket5");
     //close(establishedConnectionFD); // Close the existing socket which is connected to the client
 
-    fprintf(stdout,"%s\n", message);fflush(stdout);
-    fprintf(stdout,"S finished\n", message);fflush(stdout);
+    //fprintf(stdout,"%s\n", message);fflush(stdout);
+    //fprintf(stdout,"S finished\n", message);fflush(stdout);
+    //ciper
 
 
 }
+
+/*
+void cipher(char * key, char * message, char * cip){
+    int x=0;
+    int offset=newOffset=0;
+    for(x=0;x<strlen(message);x++){
+        if(message[x]==' '){
+
+        }
+        else{
+            message[x] - 'A' = offset;
+            key - 'A' = keyOffset
+            offset + keyOffset = newOffset
+            newOffset % 27 = cipherOffset
+            cipherChar = cipherOffset + 'A'
+
+}*/
