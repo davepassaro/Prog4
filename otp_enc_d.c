@@ -56,7 +56,9 @@ int main(int argc, char *argv[])
 		error("ERROR on binding");
 	listen(listenSocketFD, 5); // Flip the socket on - it can now receive up to 5 connections
     while(1){//kill -TERM {job number} to kill
-
+        memset(key, '\0',sizeof(key));
+        memset(key, '\0',sizeof(cip));//reset all arrays
+        memset(key, '\0',sizeof(message));
         // Accept a connection, blocking if one is not available until one connects
         sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
         establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
@@ -72,7 +74,11 @@ int main(int argc, char *argv[])
         recvInput(establishedConnectionFD,key);
         //fprintf(stderr,"SERVER: ecfd2= %d\n",establishedConnectionFD);fflush(stderr);
         recvInput(establishedConnectionFD,message);
-        cipher(key, message, cip);
+        if(strlen(key) < strlen(message)){
+            fprintf(stderr,"SERVER: Key too small for message");fflush(stderr);
+            continue;
+        }
+        //cipher(key, message, cip);
         //printf("%s\n", key);
     }
     int checkSend = -5;  // Bytes remaining in send buffer
@@ -177,8 +183,8 @@ void recvInput(int establishedConnectionFD, char * message){
     if (charsRead < 0) error("ERROR writing to socket5");
     //close(establishedConnectionFD); // Close the existing socket which is connected to the client
 
-    //fprintf(stdout,"%s\n", message);fflush(stdout);
-    //fprintf(stdout,"S finished\n", message);fflush(stdout);
+    fprintf(stdout,"\n\n\n%s\n\n\n", message);fflush(stdout);
+    fprintf(stdout,"S finished\n", message);fflush(stdout);
     //ciper
 
 
@@ -188,6 +194,7 @@ void recvInput(int establishedConnectionFD, char * message){
 void cipher(char * key, char * message, char * cip){
     int x=0;
     int offset,newOffset,cipherOffset, keyOffset;
+    memset(cip, '\0',sizeof(cip));
     for(x=0;x<strlen(message);x++){
         if(message[x]==' '){
             message[x] = '['  ;// ------------set to int 91 after 'Z' to keep subtraction of 'A' correct

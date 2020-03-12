@@ -104,7 +104,10 @@ int main(int argc, char *argv[])
     checkInput(bufSize, bigMessage, toCheck);
     int keySize = strlen(key);
     checkInput(keySize, key, toCheck);
-    if (keySize<bufSize){fprintf(stderr,"Key too small for message");fflush(stderr);}
+    if (keySize<bufSize){
+        fprintf(stderr,"CLIENT: Key too small for message");fflush(stderr);
+        exit(1);
+    }
     printf("CLIENT: keySize = %d, messSize = %d",keySize, bufSize);fflush(stdout);
     secretCode = 9;
     charsWritten = send(socketFD, &secretCode,sizeof(uint32_t), 0); // Write to the server
@@ -139,7 +142,7 @@ void checkInput(int size, char *message, char *toCheck){
         for(int j=0;j<sizeof(toCheck);j++){//for each char in message check if correct 
             if (message[i] == toCheck[j]){
                 fprintf(stderr,"Error: incorrect input chars detected\n");  fflush(stderr); 
-                exit(2);
+                exit(1);
             } 
         }
     }
@@ -218,7 +221,7 @@ void sendInput(int socketFD, char * message){
 	if (charsRead < 0) error("CLIENT: ERROR reading from socket");
 
     int sent=0;
-    remainChars = sizeof(buffer) - charsRead;//update remaining
+    remainChars = 39 - charsRead;//update remaining
     while(remainChars!=0){
         sent+= charsRead;
         fprintf(stdout,"err2c\n");fflush(stdout);
