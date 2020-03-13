@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     int rereadNum=0;
     int remainChars=0;
     int redoBufSize=0;
-    int forkReturn;
+    int forkReturn=-5;
     int children=0;
     int invalidReturn;
     char message[70000];        
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to port
 		 fprintf(stderr,"ERROR binding SERVER ");fflush(stderr);
 	listen(listenSocketFD, 5); // Flip the socket on - it can now receive up to 5 connections
-    while(1){//kill -TERM {job number} to kill
+    while(forkReturn!=0){//kill -TERM {job number} to kill
         memset(key, '\0',sizeof(key));
         memset(key, '\0',sizeof(cip));//reset all arrays
         memset(key, '\0',sizeof(message));
@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
         //printf("%s\n", key);
     }
     int checkSend = -5;  // Bytes remaining in send buffer
-    do
+    /*do
     {
     ioctl(listenSocketFD, TIOCOUTQ, &checkSend);  // Check the send buffer for this socket
     //printf("checkSend: %d\n", checkSend);  // Out of curiosity, check how many remaining bytes there are:
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
     while (checkSend > 0);  // Loop forever until send buffer for this socket is empty
 
     if (checkSend < 0)  // Check if we actually stopped the loop because of an error
-    error("ioctl error");
+    error("ioctl error");*/
     close(listenSocketFD); // Close the listening socket
 	exit(0); 
 }

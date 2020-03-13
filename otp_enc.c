@@ -132,6 +132,8 @@ int main(int argc, char *argv[])
     fprintf(stdout,"%s\n",bigMessage);fflush(stdout);
     memset(decoded,'\0',sizeof(decoded));
     //decipher(key, decoded, bigMessage);
+//printf(stdout,"end\n",);fflush(stdout);
+
     // Send message to server
 
     //	if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
@@ -361,7 +363,7 @@ void decipher(char * key, char * message, char * cip){
             message[x]=' ';
         }
     }
-    fprintf(stdout,"%s\n",message);
+    //fprintf(stdout,"%s\n",message);
 }
 
 

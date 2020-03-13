@@ -24,7 +24,7 @@ typedef enum
 
 void error(const char *msg) { 
     fprintf(stderr,"SERVER: ");fflush(stdout);
-    perror(msg); exit(0); } // Error function used for reporting issues
+    perror(msg); exit(1); } // Error function used for reporting issues
 int redoSend(int socketFD,int buffer, int bufSize, int bufIdx);
 void sendInput(int socketFD, char * message);
 void recvInput(int establishedConnectionFD, char * message);
@@ -106,6 +106,7 @@ int main(int argc, char *argv[])
     checkInput(bufSize, bigMessage, toCheck);
     int keySize = strlen(key);
     checkInput(keySize, key, toCheck);
+    //printf("keySize, %d bufSize %d", keySize, bufSize);fflush(stdout);
     if (keySize<bufSize){
         fprintf(stderr,"CLIENT: Key too small for message");fflush(stderr);
         exit(1);
@@ -118,7 +119,7 @@ int main(int argc, char *argv[])
     charsRead = recv(socketFD, &code2,sizeof(uint32_t), 0); // Write to the server
     if (charsWritten < 0) error("CLIENT: ERROR writing to socket2");
     if(code2!=6){
-        fprintf(stderr,"otp_dec cannot talk to otp_inc_d.\n");fflush(stderr);exit(1);
+        fprintf(stderr,"otp_enc cannot talk to otp_dec_d.\n");fflush(stderr);exit(1);
     }
     
     
@@ -131,6 +132,8 @@ int main(int argc, char *argv[])
     fprintf(stdout,"%s\n",bigMessage);fflush(stdout);
     memset(decoded,'\0',sizeof(decoded));
     //decipher(key, decoded, bigMessage);
+    //fprintf(stdout,"%s\n2",decoded);fflush(stdout);
+
     // Send message to server
 
     //	if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
@@ -255,7 +258,7 @@ void recvInput(int establishedConnectionFD, char * message){
     memset(message,'\0',70000);
     charsRead = recv(establishedConnectionFD, &bufSize, sizeof(uint32_t),0); // Read the client's message from the socket
     if (charsRead < 0) error("ERROR reading from socket1");
-    //printf("\nSERVER: bufSize = %d\n",bufSize);fflush(stdout);
+   // printf(": bufSize = %d\n",bufSize);fflush(stdout);
     // Get the message from the client and display it
     int j=0;
     do{//check for incomplete message and re revc 
@@ -265,10 +268,12 @@ void recvInput(int establishedConnectionFD, char * message){
         memset(buffer,'\0',1001);
 
         if(bufSize <= 1000 && startOver == FALSE){ //if buff less than 1000 just one loop (and first loop)  
-            //fprintf(stdout,"s1\n");fflush(stdout);
+           // fprintf(stdout,"s1\n");fflush(stdout);
             remainChars=0;
             charsRead = recv(establishedConnectionFD, message, bufSize, 0);
             if (charsRead < 0) error("ERROR reading from socket2");
+            //fprintf(stdout,"afters1\n");fflush(stdout);
+
             remainChars = bufSize-charsRead;
             sent=0;
             while(remainChars>0){
@@ -360,7 +365,7 @@ void decipher(char * key, char * message, char * cip){
             message[x]=' ';
         }
     }
-   // fprintf(stdout,"%s\n",message);
+    //fprintf(stdout,"%s\n",message);
 }
 
 
