@@ -89,10 +89,10 @@ int main(int argc, char *argv[])
        // printf("\nSERVER: Connected Client at port %d\n",ntohs(clientAddress.sin_port));
         charsRead = recv(establishedConnectionFD, &secretCode, sizeof(uint32_t),0); // Read the code 
         if (charsRead < 0) error("ERROR reading from socket1 sc");
-        int code2=9;
+        int code2=6;
         charsRead = send(establishedConnectionFD, &code2, sizeof(uint32_t),0); // Read the code 
         if (charsRead < 0) error("ERROR reading from socket1 sc");
-        if(secretCode != 9){
+        if(secretCode != 6){
             fprintf(stderr,"SERVER: Incorrect entry code for otp_enc_d\n");fflush(stderr);
             exit(1);}
         // Get the message size from the client (in bufSize) then send key and message
@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
             fprintf(stderr,"SERVER: Key too small for message");fflush(stderr);
             continue;
         }
-        cipher(key, message, cip);
+        decipher(key, message, cip);
         sendCip(establishedConnectionFD, cip);
         //decipher(key, message, cip);
         //printf("%s\n", key);

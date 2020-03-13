@@ -111,13 +111,13 @@ int main(int argc, char *argv[])
         exit(1);
     }
     //printf("CLIENT: keySize = %d, messSize = %d",keySize, bufSize);fflush(stdout);
-    secretCode = 9;
+    secretCode = 6;
     int code2;
     charsWritten = send(socketFD, &secretCode,sizeof(uint32_t), 0); // Write to the server
     if (charsWritten < 0) error("CLIENT: ERROR writing to socket2");
     charsRead = recv(socketFD, &code2,sizeof(uint32_t), 0); // Write to the server
     if (charsWritten < 0) error("CLIENT: ERROR writing to socket2");
-    if(code2!=9){
+    if(code2!=6){
         fprintf(stderr,"CLIENT: Incorrect server password.\n");fflush(stderr);
     }
     
