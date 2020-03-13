@@ -60,11 +60,11 @@ int main(int argc, char *argv[])
 
 	// Set up the socket
 	listenSocketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
-	if (listenSocketFD < 0) error("ERROR opening socket");
+	if (listenSocketFD < 0) fprintf(stderr,"ERR listen server");fflush(stderr);
 
 	// Enable the socket to begin listening
 	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to port
-		error("ERROR on binding");
+		 fprintf(stderr,"ERR binding server");fflush(stderr);
 	listen(listenSocketFD, 5); // Flip the socket on - it can now receive up to 5 connections
     while(1){//kill -TERM {job number} to kill
         memset(key, '\0',sizeof(key));
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
         do{
             establishedConnectionFD=-5;
             establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
-            if (establishedConnectionFD < 0){error("ERROR on accept");}
+            if (establishedConnectionFD < 0){ fprintf(stderr,"ERR accpeting server");fflush(stderr);}
             if( children>=5 ){
                 wait(&childExitMethod);
                 children--;
@@ -255,7 +255,7 @@ void cipher(char * key, char * message, char * cip){
         cip[x] = cipherOffset + 'A';
         //fprintf(stdout,"%d= %d + %d ",cipherOffset, offset, keyOffset);
     }
-    fprintf(stdout,"cip:\n%s\n",cip);
+   // fprintf(stdout,"cip:\n%s\n",cip);
 
 }
 void decipher(char * key, char * message, char * cip){

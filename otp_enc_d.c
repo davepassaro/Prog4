@@ -60,11 +60,12 @@ int main(int argc, char *argv[])
 
 	// Set up the socket
 	listenSocketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
-	if (listenSocketFD < 0) error("ERROR opening socket");
+	if (listenSocketFD < 0) fprintf(stderr,"ERROR listening socket SERVER");fflush(stderr);
+
 
 	// Enable the socket to begin listening
 	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to port
-		error("ERROR on binding");
+		 fprintf(stderr,"ERROR binding SERVER ");fflush(stderr);
 	listen(listenSocketFD, 5); // Flip the socket on - it can now receive up to 5 connections
     while(1){//kill -TERM {job number} to kill
         memset(key, '\0',sizeof(key));
@@ -76,7 +77,7 @@ int main(int argc, char *argv[])
         do{
             establishedConnectionFD=-5;
             establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
-            if (establishedConnectionFD < 0){error("ERROR on accept");}
+            if (establishedConnectionFD < 0){ fprintf(stderr,"ERROR  accept SERVER");fflush(stderr);}
             if( children>=5 ){
                 wait(&childExitMethod);
                 children--;
@@ -102,16 +103,16 @@ int main(int argc, char *argv[])
         recvInput(establishedConnectionFD,message);
         if(checkInput(strlen(key), key, toCheck)!=0){
             fprintf(stderr,"SERVER: Invalid input");fflush(stderr);
-            continue;
+            exit(1);
         }
         checkInput(strlen(message),message, toCheck);
         if(checkInput(strlen(key), key, toCheck)!=0){
             fprintf(stderr,"SERVER: Invalid input");fflush(stderr);
-            continue;
+            exit(1);
         }
         if(strlen(key) < strlen(message)){
             fprintf(stderr,"SERVER: Key too small for message");fflush(stderr);
-            continue;
+            exit(1);
         }
         cipher(key, message, cip);
         sendCip(establishedConnectionFD, cip);
@@ -141,7 +142,7 @@ int checkInput(int size, char *message, char *toCheck){
         for(int j=0;j<sizeof(toCheck);j++){//for each char in message check if correct 
             if (message[i] == toCheck[j]){
                 fprintf(stderr,"Error: incorrect input chars detected\n");  fflush(stderr); 
-                return(1);
+                exit(1);
             } 
         }
     }
@@ -255,7 +256,7 @@ void cipher(char * key, char * message, char * cip){
         cip[x] = cipherOffset + 'A';
         //fprintf(stdout,"%d= %d + %d ",cipherOffset, offset, keyOffset);
     }
-    fprintf(stdout,"cip:\n%s\n",cip);
+    //fprintf(stdout,"cip:\n%s\n",cip);
 
 }
 void decipher(char * key, char * message, char * cip){

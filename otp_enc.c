@@ -24,7 +24,7 @@ typedef enum
 
 void error(const char *msg) { 
     fprintf(stderr,"SERVER: ");fflush(stdout);
-    perror(msg); exit(0); } // Error function used for reporting issues
+    perror(msg); exit(1); } // Error function used for reporting issues
 int redoSend(int socketFD,int buffer, int bufSize, int bufIdx);
 void sendInput(int socketFD, char * message);
 void recvInput(int establishedConnectionFD, char * message);
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 	//if (argc < 5) { fprintf(stderr,"USAGE: %s hostname port\n", argv[0]); exit(0); } // Check usage & args
 	// Set up the server address struct
 	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
-	portNumber = atoi(argv[4]); // Get the port number, convert to an integer from a string
+	portNumber = atoi(argv[3]); // Get the port number, convert to an integer from a string
 	serverAddress.sin_family = AF_INET; // Create a network-capable socket
 	serverAddress.sin_port = htons(portNumber); // Store the port number
 	serverHostInfo = gethostbyname("localhost"); // Convert the machine name into a special form of address
@@ -106,6 +106,7 @@ int main(int argc, char *argv[])
     checkInput(bufSize, bigMessage, toCheck);
     int keySize = strlen(key);
     checkInput(keySize, key, toCheck);
+    //printf("keySize, %d bufSize %d", keySize, bufSize);fflush(stdout);
     if (keySize<bufSize){
         fprintf(stderr,"CLIENT: Key too small for message");fflush(stderr);
         exit(1);
@@ -118,7 +119,7 @@ int main(int argc, char *argv[])
     charsRead = recv(socketFD, &code2,sizeof(uint32_t), 0); // Write to the server
     if (charsWritten < 0) error("CLIENT: ERROR writing to socket2");
     if(code2!=9){
-        fprintf(stderr,"CLIENT: Incorrect server password.\n");fflush(stderr);
+        fprintf(stderr,"otp_enc cannot talk to otp_dec_d.\n");fflush(stderr);exit(1);
     }
     
     
@@ -128,9 +129,9 @@ int main(int argc, char *argv[])
     sendInput(socketFD, bigMessage);
     memset(decoded,'\0',sizeof(decoded));
     recvInput(socketFD, bigMessage);
-    //fprintf(stdout,"%s\n",bigMessage);fflush(stdout);
+    fprintf(stdout,"%s\n",bigMessage);fflush(stdout);
     memset(decoded,'\0',sizeof(decoded));
-    decipher(key, decoded, bigMessage);
+    //decipher(key, decoded, bigMessage);
     // Send message to server
 
     //	if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
