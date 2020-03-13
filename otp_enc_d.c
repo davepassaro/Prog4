@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <sys/types.h> 
 #include <sys/socket.h>
@@ -35,12 +36,15 @@ int main(int argc, char *argv[])
 	int listenSocketFD, establishedConnectionFD, portNumber, charsRead;
 	socklen_t sizeOfClientInfo;
     bool startOver;
+    int childExitMethod;
 	struct sockaddr_in serverAddress, clientAddress;
     int bufSize=0;
     int secretCode;
     int rereadNum=0;
     int remainChars=0;
     int redoBufSize=0;
+    int forkReturn;
+    int children=0;
     int invalidReturn;
     char message[70000];        
     char key[70000];
@@ -67,10 +71,22 @@ int main(int argc, char *argv[])
         memset(key, '\0',sizeof(cip));//reset all arrays
         memset(key, '\0',sizeof(message));
         // Accept a connection, blocking if one is not available until one connects
+        
         sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
-        establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
-        if (establishedConnectionFD < 0){error("ERROR on accept");}
-        printf("\nSERVER: Connected Client at port %d\n",ntohs(clientAddress.sin_port));
+        do{
+            establishedConnectionFD=-5;
+            establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
+            if (establishedConnectionFD < 0){error("ERROR on accept");}
+            if( children>=5 ){
+                wait(&childExitMethod);
+                children--;
+                forkReturn = fork();
+                children++;}//limit to five
+            else{
+                forkReturn = fork();
+                children++;} //if less than 5 allow more
+        }while(forkReturn!=0);   
+       // printf("\nSERVER: Connected Client at port %d\n",ntohs(clientAddress.sin_port));
         charsRead = recv(establishedConnectionFD, &secretCode, sizeof(uint32_t),0); // Read the code 
         if (charsRead < 0) error("ERROR reading from socket1 sc");
         if(secretCode != 9){

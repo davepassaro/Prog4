@@ -354,7 +354,7 @@ void decipher(char * key, char * message, char * cip){
             message[x]=' ';
         }
     }
-    fprintf(stdout,"decoded message:\n%s\n",message);
+    //fprintf(stdout,"decoded message:\n%s\n",message);
 }
 
 
