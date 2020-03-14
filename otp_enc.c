@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
     char bigMessage[70010];
     char decoded[70010];
     char key[70010];
-    char toCheck[] = {'a','b','c','d','e','f','g','h','i','j', 
+    char toCheck[] = {'a','b','c','d','e','f','g','h','i','j', //all of the wrong input chars
     'k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','!','@','#','$','%','^','&','*' ,
     '(',')',',','\'','"','-','_','[',']','{','}','`','~','\\','|','?','.','<','>'}; 
     char * p;
@@ -72,9 +72,8 @@ int main(int argc, char *argv[])
 	// Get input message from user
     memset(bigMessage, '\0', sizeof(bigMessage)); // Clear out the buffer array
     
-   // strcpy(fileName,
     fptr = fopen(argv[1],"r");
-    if(fptr == NULL)
+    if(fptr == NULL)//open message file 
     {
         fprintf(stderr,"Error opening input file");   
         exit(1);//                ?             
@@ -84,12 +83,9 @@ int main(int argc, char *argv[])
     if( bigMessage[0]=='\0'){fprintf(stderr,"Nothing read from file");fflush(stderr);}
     // Get input from the user, trunc to buffer - 1 chars, leaving \0
 	bigMessage[strcspn(bigMessage, "\n")] = '\0'; // Remove the trailing \n that fgets adds
-    //fprintf(stdout,"\n\nfile = %s\n\n", bigMessage);fflush(stdout);
 
     // Get key
-	//printf("CLIENT: Enter text to send to the server, and then hit enter: ");
     memset(key, '\0', sizeof(key)); // Clear out the buffer array
-   // strcpy(fileName,
     fclose(fptr);
     fptr = fopen(argv[2],"r");
     if(fptr == NULL)
@@ -103,18 +99,15 @@ int main(int argc, char *argv[])
     // Get input from the user, trunc to buffer - 1 chars, leaving \0
 	key[strcspn(key, "\n")] = '\0'; // Remove the trailing \n that fgets adds
     //send message size to server
-   // fprintf(stdout,"\nkey = %s\n\n", key);fflush(stdout);
 	bufSize = strlen(bigMessage);
-    checkInput(bufSize, bigMessage, toCheck);
+    checkInput(bufSize, bigMessage, toCheck);//scan for wrong input chars
     int keySize = strlen(key);
     checkInput(keySize, key, toCheck);
-    //printf("keySize, %d bufSize %d", keySize, bufSize);fflush(stdout);
-    if (keySize<bufSize){
+    if (keySize<bufSize){//make sure key is big enough
         fprintf(stderr,"CLIENT: Key too small for message");fflush(stderr);
         exit(1);
     }
-    //printf("CLIENT: keySize = %d, messSize = %d",keySize, bufSize);fflush(stdout);
-    secretCode = 9;
+    secretCode = 9;//make the handshake verification
     int code2;
     charsWritten = send(socketFD, &secretCode,sizeof(uint32_t), 0); // Write to the server
     if (charsWritten < 0) error("CLIENT: ERROR writing to socket2");
@@ -126,60 +119,31 @@ int main(int argc, char *argv[])
     }
     
     
-    //fprintf(stdout,"\ncomplete send1\n");fflush(stdout);
-
-    sendInput2(socketFD, bigMessage);
-        sendInput2(socketFD, key);
+    sendInput2(socketFD, bigMessage);//send data over
+    sendInput2(socketFD, key);
 
     memset(decoded,'\0',sizeof(decoded));
     recvInput2(socketFD, bigMessage);
-    fprintf(stdout,"%s\n",bigMessage);fflush(stdout);
+    fprintf(stdout,"%s\n",bigMessage);fflush(stdout); //print to stdout for redirect
     memset(decoded,'\0',sizeof(decoded));
-    decipher(key, decoded, bigMessage);
-   // printf("%s\n",decoded);fflush(stdout);
+    //decipher(key, decoded, bigMessage);
 
-    // Send message to server
-
-    //	if (charsWritten < strlen(buffer)) printf("CLIENT: WARNING: Not all data written to socket!\n");
-    //fprintf(stdout,"\ncomplete send2\n");fflush(stdout);
-
-	// Get return message from server
-    int checkSend = -5;  // Bytes remaining in send buffer
-    do
-    {
-    ioctl(socketFD, TIOCOUTQ, &checkSend);  // Check the send buffer for this socket
-    //printf("checkSend: %d\n", checkSend);  // Out of curiosity, check how many remaining bytes there are:
-    }
-    while (checkSend > 0);  // Loop forever until send buffer for this socket is empty
-
-    if (checkSend < 0)  // Check if we actually stopped the loop because of an error
-    error("ioctl error");
 	close(socketFD); // Close the socket
-	return 0;
+	exit(0);
 }
 void sendInput2(int socketFD, char * message){
-    //char *sendBuffer=[10];
-    strcat(message,"@@<<<<<<");//terminator
+    strcat(message,"@@<<<<<<");//terminator at end
     int bufSize=strlen(message);
-    //printf("C1   %s\n",message);fflush(stdout);
     int charsWritten=0;
-   // while(bufSize>0){
-        charsWritten = send(socketFD, message,strlen(message), 0); // Write to the server           
-        if (charsWritten < 0) error("CLIENT: ERROR writing to socket1");
-            //printf("cw   %d\n",charsWritten);fflush(stdout);
-
-     //   bufSize -= charsWritten;
-      //  if(bufSize != 0){fprintf(stdout,"error12C");}
-  //  }
+    charsWritten = send(socketFD, message,strlen(message), 0); // Write to the server           
+    if (charsWritten < 0) error("CLIENT: ERROR writing to socket1");
     char finished[4];
     memset(finished,'\0',sizeof(finished));
-    recv(socketFD, finished, sizeof(finished) - 1, 0);
-  //  printf("message sent\n");
-
+    recv(socketFD, finished, sizeof(finished) - 1, 0);//make sure client waits to send next message
 }
 void recvInput2(int socketFD, char * message){
     char readBuffer[10];//cite lecture!!!!!!!!!
-        memset(message, '\0', sizeof(message)); // Clear the buffer
+    memset(message, '\0', sizeof(message)); // Clear the buffer
     while (strstr(message, "@@<<<<<<") == NULL) // As long as we haven't found the terminal...
     {
         memset(readBuffer, '\0', sizeof(readBuffer)); // Clear the buffer
@@ -191,42 +155,17 @@ void recvInput2(int socketFD, char * message){
     }
     int terminalLocation = strstr(message, "@@<<<<") - message; // Where is the terminal
     message[terminalLocation] = '\0'; // End the string early to wipe out the terminal
-    //printf("%s\n",message);
 }
 
 
 
 void checkInput(int size, char *message, char *toCheck){
     for (int i=0;i<size;i++){
-        for(int j=0;j<sizeof(toCheck);j++){//for each char in message check if correct 
+        for(int j=0;j<sizeof(toCheck);j++){//for each char in message check if correct --
             if (message[i] == toCheck[j]){
                 fprintf(stderr,"Error: incorrect input chars detected\n");  fflush(stderr); 
                 exit(1);
             } 
         }
     }
-}
-
-
-
-
-
-void decipher(char * key, char * message, char * cip){
-    int x=0;
-    int offset,newOffset,cipherOffset, keyOffset;
-    memset(message, '\0',sizeof(message));
-    for(x=0;x<strlen(cip);x++){
-        offset = cip[x] - 'A' ;
-        keyOffset = key[x] - 'A' ;
-        newOffset = offset - keyOffset ;
-        if(newOffset<0){newOffset += 27;}
-        cipherOffset = newOffset % 27 ;
-        //fprintf(stdout,"%d= %d + %d ",cipherOffset, offset, keyOffset);
-
-        message[x] = cipherOffset + 'A';
-        if(message[x]=='['){
-            message[x]=' ';
-        }
-    }
-    //fprintf(stdout,"%s\n",message);
 }
