@@ -59,16 +59,16 @@ int main(int argc, char *argv[])
 	serverAddress.sin_family = AF_INET; // Create a network-capable socket
 	serverAddress.sin_port = htons(portNumber); // Store the port number
 	serverHostInfo = gethostbyname("localhost"); // Convert the machine name into a special form of address
-	if (serverHostInfo == NULL) { fprintf(stderr, "CLIENT: ERROR, no such host\n"); exit(0); }
+	if (serverHostInfo == NULL)  { fprintf(stderr, "CLIENT: ERROR, no such host. Port: %s\n",argv[3]); exit(2); }
 	memcpy((char*)&serverAddress.sin_addr.s_addr, (char*)serverHostInfo->h_addr, serverHostInfo->h_length); // Copy in the address
 
 	// Set up the socket
 	socketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
-	if (socketFD < 0) error("CLIENT: ERROR opening socket");
+	if (socketFD < 0)  { fprintf(stderr, "CLIENT: ERROR, socket. Port: %s\n",argv[3]); exit(2); }
 	
 	// Connect to server
 	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to address
-		error("CLIENT: ERROR connecting");
+		 { fprintf(stderr, "CLIENT: ERROR, connecting. Port: %s\n",argv[3]); exit(2); }
 
 	// Get input message from user
     memset(bigMessage, '\0', sizeof(bigMessage)); // Clear out the buffer array
@@ -122,8 +122,8 @@ int main(int argc, char *argv[])
     charsRead = recv(socketFD, &code2,sizeof(uint32_t), 0); // Write to the server
     if (charsWritten < 0) error("CLIENT: ERROR writing to socket2");
     if(code2!=6){
-        fprintf(stderr,"otp_dec cannot talk to otp_enc_d.\n");fflush(stderr);exit(1);
-    }
+        fprintf(stderr,"otp_dec cannot talk to otp_enc_d.\n");fflush(stderr); 
+        fprintf(stderr, " Port: %s\n",argv[3]); exit(2); }
     
     
     //fprintf(stdout,"\ncomplete send1\n");fflush(stdout);
