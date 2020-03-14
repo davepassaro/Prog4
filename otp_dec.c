@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 
 	// Get input message from user
     memset(bigMessage, '\0', sizeof(bigMessage)); // Clear out the buffer array
-
+    
    // strcpy(fileName,
     fptr = fopen(argv[1],"r");
     if(fptr == NULL)
@@ -106,9 +106,9 @@ int main(int argc, char *argv[])
     //send message size to server
    // fprintf(stdout,"\nkey = %s\n\n", key);fflush(stdout);
 	bufSize = strlen(bigMessage);
-    //checkInput(bufSize, bigMessage, toCheck);
+    checkInput(bufSize, bigMessage, toCheck);
     int keySize = strlen(key);
-   // checkInput(keySize, key, toCheck);
+    checkInput(keySize, key, toCheck);
     //printf("keySize, %d bufSize %d", keySize, bufSize);fflush(stdout);
     if (keySize<bufSize){
         fprintf(stderr,"CLIENT: Key too small for message");fflush(stderr);
@@ -126,16 +126,17 @@ int main(int argc, char *argv[])
     }
     
     
-    sendInput2(socketFD, key);
     //fprintf(stdout,"\ncomplete send1\n");fflush(stdout);
 
     sendInput2(socketFD, bigMessage);
+        sendInput2(socketFD, key);
+
     memset(decoded,'\0',sizeof(decoded));
     recvInput2(socketFD, bigMessage);
-    fprintf(stdout,"%s\n",bigMessage);fflush(stdout);
-    memset(decoded,'\0',sizeof(decoded));
-    decipher(key, decoded, bigMessage);
-    fprintf(stdout,"%s\n",decoded);fflush(stdout);
+   // fprintf(stdout,"%s\n",bigMessage);fflush(stdout);
+    //memset(decoded,'\0',sizeof(decoded));
+    //decipher(key, decoded, bigMessage);
+    printf("%s\n",bigMessage);fflush(stdout);
 
     // Send message to server
 
@@ -156,37 +157,42 @@ int main(int argc, char *argv[])
 	close(socketFD); // Close the socket
 	return 0;
 }
-
 void sendInput2(int socketFD, char * message){
     //char *sendBuffer=[10];
-    strcat(message,"@@<<<<");//terminator
+    strcat(message,"@@<<<<<<");//terminator
     int bufSize=strlen(message);
+    //printf("C1   %s\n",message);fflush(stdout);
     int charsWritten=0;
    // while(bufSize>0){
         charsWritten = send(socketFD, message,strlen(message), 0); // Write to the server           
-     //   if (charsWritten < 0) error("CLIENT: ERROR writing to socket1");
+        if (charsWritten < 0) error("CLIENT: ERROR writing to socket1");
+            //printf("cw   %d\n",charsWritten);fflush(stdout);
+
      //   bufSize -= charsWritten;
       //  if(bufSize != 0){fprintf(stdout,"error12C");}
   //  }
+    char finished[4];
+    memset(finished,'\0',sizeof(finished));
+    recv(socketFD, finished, sizeof(finished) - 1, 0);
+  //  printf("message sent\n");
+
 }
-void recvInput2(int socketFD, char * completeMessage){
+void recvInput2(int socketFD, char * message){
     char readBuffer[10];//cite lecture!!!!!!!!!
-       // memset(completeMessage, '\0', sizeof(completeMessage)); // Clear the buffer
-    while (strstr(completeMessage, "@@<<<<") == NULL) // As long as we haven't found the terminal...
+        memset(message, '\0', sizeof(message)); // Clear the buffer
+    while (strstr(message, "@@<<<<<<") == NULL) // As long as we haven't found the terminal...
     {
         memset(readBuffer, '\0', sizeof(readBuffer)); // Clear the buffer
         int r = recv(socketFD, readBuffer, sizeof(readBuffer) - 1, 0); // Get the next chunk
-        strcat(completeMessage, readBuffer); // Add that chunk to what we have so far
+        strcat(message, readBuffer); // Add that chunk to what we have so far
        // printf("PARENT: Message received from child: \"%s\", total: \"%s\"\n", readBuffer, completeMessage);
         if (r == -1) { printf("r == -1\n"); break; } // Check for errors
         if (r == 0) { printf("r == 0\n"); break; }
     }
-    int terminalLocation = strstr(completeMessage, "@@<<<<") - completeMessage; // Where is the terminal
-    completeMessage[terminalLocation] = '\0'; // End the string early to wipe out the terminal
-   // printf("%s\n",message);
+    int terminalLocation = strstr(message, "@@<<<<") - message; // Where is the terminal
+    message[terminalLocation] = '\0'; // End the string early to wipe out the terminal
+    //printf("%s\n",message);
 }
-
-
 
 
 
@@ -200,11 +206,12 @@ void checkInput(int size, char *message, char *toCheck){
         }
     }
 }
-int redoSend(int socketFD,int buffer, int bufSize, int bufIdx){
-        int charsWritten = send(socketFD, buffer+bufIdx,strlen(bufSize), 0); // Write to the server            if (charsRead < 0) error("ERROR reading from socket");
-    return charsWritten;
-}
+//int redoSend(int socketFD,int buffer, int bufSize, int bufIdx){
+       // int charsWritten = send(socketFD, buffer+bufIdx,strlen(bufSize), 0); // Write to the server            if (charsRead < 0) error("ERROR reading from socket");
+  //  return charsWritten;
+//}
 
+/*
 void sendInput(int socketFD, char * message){
     int bufSize = strlen(message);
     char buffer[1001];
@@ -281,7 +288,7 @@ void sendInput(int socketFD, char * message){
         if (charsRead < 0) error("ERROR reading from socket");
         remainChars = remainChars - charsRead;//update remaining
     }
-	fprintf(stdout,"CLIENT: I received this from the server: %s\n", buffer);fflush(stdout);*/
+	fprintf(stdout,"CLIENT: I received this from the server: %s\n", buffer);fflush(stdout);
 
 }
 
@@ -294,7 +301,7 @@ void recvInput(int establishedConnectionFD, char * message){
     memset(message,'\0',70000);
     charsRead = recv(establishedConnectionFD, &bufSize, sizeof(uint32_t),0); // Read the client's message from the socket
     if (charsRead < 0) error("ERROR reading from socket1");
-   // printf(": bufSize = %d\n",bufSize);fflush(stdout);
+    //printf("\nSERVER: bufSize = %d\n",bufSize);fflush(stdout);
     // Get the message from the client and display it
     int j=0;
     do{//check for incomplete message and re revc 
@@ -304,12 +311,10 @@ void recvInput(int establishedConnectionFD, char * message){
         memset(buffer,'\0',1001);
 
         if(bufSize <= 1000 && startOver == FALSE){ //if buff less than 1000 just one loop (and first loop)  
-           // fprintf(stdout,"s1\n");fflush(stdout);
+            //fprintf(stdout,"s1\n");fflush(stdout);
             remainChars=0;
             charsRead = recv(establishedConnectionFD, message, bufSize, 0);
             if (charsRead < 0) error("ERROR reading from socket2");
-            //fprintf(stdout,"afters1\n");fflush(stdout);
-
             remainChars = bufSize-charsRead;
             sent=0;
             while(remainChars>0){
@@ -366,7 +371,7 @@ void recvInput(int establishedConnectionFD, char * message){
         }
 
 
-    }while(startOver == TRUE);
+    }while(startOver == TRUE);   */
     //printf("SERVER: I received this from the client: %s\n", message);
     // Send a Success message back to the client
     /*charsRead = send(establishedConnectionFD, "I am the server, and I got your message\n", 39, 0); // Send success back
@@ -378,7 +383,7 @@ void recvInput(int establishedConnectionFD, char * message){
     //ciper
 
 
-}
+//}
 
 
 
@@ -403,4 +408,3 @@ void decipher(char * key, char * message, char * cip){
     }
     //fprintf(stdout,"%s\n",message);
 }
-
