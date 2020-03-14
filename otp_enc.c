@@ -29,16 +29,18 @@ int redoSend(int socketFD,int buffer, int bufSize, int bufIdx);
 void sendInput(int socketFD, char * message);
 void recvInput(int establishedConnectionFD, char * message);
 void decipher(char * key, char * message, char * cip);
-
+void recvInput2(int socketFD, char * completeMessage);
+void sendInput2(int socketFD, char * message);
+void checkInput(int size, char *message, char *toCheck);
 int main(int argc, char *argv[])
 {
 	int socketFD, portNumber, charsWritten, charsRead, secretCode,j;
 	struct sockaddr_in serverAddress;
 	struct hostent* serverHostInfo;
 	char buffer[1001];
-    char bigMessage[70000];
-    char decoded[70000];
-    char key[70000];
+    char bigMessage[70010];
+    char decoded[70010];
+    char key[70010];
     char toCheck[] = {'a','b','c','d','e','f','g','h','i','j', 
     'k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','!','@','#','$','%','^','&','*' ,
     '(',')',',','\'','"','-','_','[',']','{','}','`','~','\\','|','?','.','<','>'}; 
@@ -70,6 +72,7 @@ int main(int argc, char *argv[])
 
 	// Get input message from user
     memset(bigMessage, '\0', sizeof(bigMessage)); // Clear out the buffer array
+    
    // strcpy(fileName,
     fptr = fopen(argv[1],"r");
     if(fptr == NULL)
@@ -123,16 +126,17 @@ int main(int argc, char *argv[])
     }
     
     
-    sendInput(socketFD, key);
     //fprintf(stdout,"\ncomplete send1\n");fflush(stdout);
 
-    sendInput(socketFD, bigMessage);
+    sendInput2(socketFD, bigMessage);
+        sendInput2(socketFD, key);
+
     memset(decoded,'\0',sizeof(decoded));
-    recvInput(socketFD, bigMessage);
+    recvInput2(socketFD, bigMessage);
     fprintf(stdout,"%s\n",bigMessage);fflush(stdout);
     memset(decoded,'\0',sizeof(decoded));
-    //decipher(key, decoded, bigMessage);
-//printf(stdout,"end\n",);fflush(stdout);
+    decipher(key, decoded, bigMessage);
+   // printf("%s\n",decoded);fflush(stdout);
 
     // Send message to server
 
@@ -153,6 +157,45 @@ int main(int argc, char *argv[])
 	close(socketFD); // Close the socket
 	return 0;
 }
+void sendInput2(int socketFD, char * message){
+    //char *sendBuffer=[10];
+    strcat(message,"@@<<<<<<");//terminator
+    int bufSize=strlen(message);
+    //printf("C1   %s\n",message);fflush(stdout);
+    int charsWritten=0;
+   // while(bufSize>0){
+        charsWritten = send(socketFD, message,strlen(message), 0); // Write to the server           
+        if (charsWritten < 0) error("CLIENT: ERROR writing to socket1");
+            //printf("cw   %d\n",charsWritten);fflush(stdout);
+
+     //   bufSize -= charsWritten;
+      //  if(bufSize != 0){fprintf(stdout,"error12C");}
+  //  }
+    char finished[4];
+    memset(finished,'\0',sizeof(finished));
+    recv(socketFD, finished, sizeof(finished) - 1, 0);
+  //  printf("message sent\n");
+
+}
+void recvInput2(int socketFD, char * message){
+    char readBuffer[10];//cite lecture!!!!!!!!!
+        memset(message, '\0', sizeof(message)); // Clear the buffer
+    while (strstr(message, "@@<<<<<<") == NULL) // As long as we haven't found the terminal...
+    {
+        memset(readBuffer, '\0', sizeof(readBuffer)); // Clear the buffer
+        int r = recv(socketFD, readBuffer, sizeof(readBuffer) - 1, 0); // Get the next chunk
+        strcat(message, readBuffer); // Add that chunk to what we have so far
+       // printf("PARENT: Message received from child: \"%s\", total: \"%s\"\n", readBuffer, completeMessage);
+        if (r == -1) { printf("r == -1\n"); break; } // Check for errors
+        if (r == 0) { printf("r == 0\n"); break; }
+    }
+    int terminalLocation = strstr(message, "@@<<<<") - message; // Where is the terminal
+    message[terminalLocation] = '\0'; // End the string early to wipe out the terminal
+    //printf("%s\n",message);
+}
+
+
+
 void checkInput(int size, char *message, char *toCheck){
     for (int i=0;i<size;i++){
         for(int j=0;j<sizeof(toCheck);j++){//for each char in message check if correct 
@@ -163,11 +206,12 @@ void checkInput(int size, char *message, char *toCheck){
         }
     }
 }
-int redoSend(int socketFD,int buffer, int bufSize, int bufIdx){
-        int charsWritten = send(socketFD, buffer+bufIdx,strlen(bufSize), 0); // Write to the server            if (charsRead < 0) error("ERROR reading from socket");
-    return charsWritten;
-}
+//int redoSend(int socketFD,int buffer, int bufSize, int bufIdx){
+       // int charsWritten = send(socketFD, buffer+bufIdx,strlen(bufSize), 0); // Write to the server            if (charsRead < 0) error("ERROR reading from socket");
+  //  return charsWritten;
+//}
 
+/*
 void sendInput(int socketFD, char * message){
     int bufSize = strlen(message);
     char buffer[1001];
@@ -235,7 +279,6 @@ void sendInput(int socketFD, char * message){
     /*memset(buffer, '\0', sizeof(buffer)); // Clear out the buffer again for reuse
 	int charsRead = recv(socketFD, buffer, sizeof(buffer) - 1, 0); // Read data from the socket,make sure send over
 	if (charsRead < 0) error("CLIENT: ERROR reading from socket");
-
     int sent=0;
     remainChars = 39 - charsRead;//update remaining
     while(remainChars!=0){
@@ -245,7 +288,7 @@ void sendInput(int socketFD, char * message){
         if (charsRead < 0) error("ERROR reading from socket");
         remainChars = remainChars - charsRead;//update remaining
     }
-	fprintf(stdout,"CLIENT: I received this from the server: %s\n", buffer);fflush(stdout);*/
+	fprintf(stdout,"CLIENT: I received this from the server: %s\n", buffer);fflush(stdout);
 
 }
 
@@ -328,7 +371,7 @@ void recvInput(int establishedConnectionFD, char * message){
         }
 
 
-    }while(startOver == TRUE);
+    }while(startOver == TRUE);   */
     //printf("SERVER: I received this from the client: %s\n", message);
     // Send a Success message back to the client
     /*charsRead = send(establishedConnectionFD, "I am the server, and I got your message\n", 39, 0); // Send success back
@@ -340,7 +383,7 @@ void recvInput(int establishedConnectionFD, char * message){
     //ciper
 
 
-}
+//}
 
 
 
@@ -365,20 +408,3 @@ void decipher(char * key, char * message, char * cip){
     }
     //fprintf(stdout,"%s\n",message);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*      }*/
