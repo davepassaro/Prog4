@@ -309,7 +309,6 @@ void cipher(char * key, char * message, char * cip){
         offset = message[x] - 'A' ;
         keyOffset = key[x] - 'A' ;
         newOffset = offset + keyOffset ;
-        if(newOffset>26){newOffset -= 27;}
         cipherOffset = newOffset % 27 ;
         cip[x] = cipherOffset + 'A';
         //fprintf(stdout,"%d= %d + %d ",cipherOffset, offset, keyOffset);
